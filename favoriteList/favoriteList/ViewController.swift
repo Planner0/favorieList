@@ -9,7 +9,8 @@ import UIKit
 
 final class ViewController: UIViewController {
     
-    var movieArray: [Movie] = [first, second]
+    private lazy var movieSet: Set<Movie> = [first, second]
+    private lazy var movieArray: [Movie] = [first, second]
     
     //MARK: Properties
     private lazy var titleTextField: UITextField = {
@@ -62,6 +63,7 @@ final class ViewController: UIViewController {
         super.viewDidLoad()
         self.view.backgroundColor = .white
         setup()
+        
     }
     
     //MARK: Methods
@@ -102,27 +104,28 @@ final class ViewController: UIViewController {
             self.present(alert, animated: true, completion: nil)
             print("error: Wrong data")
             return }
-        
         self.titleTextField.text = ""
         self.yearTextField.text = ""
         print("Not empty")
         
-        guard (self.movieArray.firstIndex(where: {$0.title == title}) == nil) else {
+        let movie = Movie(title: title, year: Int(year) ?? 0)
+        guard self.movieSet.insert(movie).inserted else {
             let alert = customAlert(message: "You have this movie in favorite list")
             self.present(alert, animated: true, completion: nil)
             print("error: You have this movie in favorite list")
             return }
-        let movie = Movie(title: title, year: Int(year) ?? 0)
-        self.movieArray.append(movie)
+        self.movieArray.append(movie) // O(1) or O(n) if memory runs out
+        print(movieSet)
         print(movieArray)
-        self.favoriteMovieTableView.reloadData()
+        let indexPath = IndexPath.init(row: self.movieSet.count - 1, section: 0)
+        self.favoriteMovieTableView.insertRows(at: [indexPath], with: .none)
         
     }
 }
 extension ViewController: UITableViewDataSource, UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return movieArray.count
+        return movieArray.count // O(1) conforms to RandomAccessCollection
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -141,7 +144,8 @@ extension ViewController: UITableViewDataSource, UITableViewDelegate {
 
         let contextItem = UIContextualAction(style: .destructive, title: "Delete") { (action, view, success) in
             print("delete")
-            self.movieArray.remove(at: indexPath.row)
+            let movie = self.movieArray.remove(at: indexPath.row) // O(n)
+            self.movieSet.remove(movie)
             self.favoriteMovieTableView.deleteRows(at: [indexPath], with: .automatic)
         }
         contextItem.image = UIImage(systemName: "multiply.circle.fill")
